@@ -250,6 +250,42 @@ struct UUIDV7Tests {
             try JSONDecoder().decode(UUIDV7.self, from: Data())
         }
     }
+
+    @Test("Min and Max Bits")
+    func minMaxBits() {
+        let date = Date(timeIntervalSince1970: 1000)
+        let min = UUIDV7.min(timestamp: date)
+        let max = UUIDV7.max(timestamp: date)
+
+        // Check Min
+        #expect(min.uuid.6 == 0x70) // Version 7, Rand A high = 0
+        #expect(min.uuid.7 == 0x00) // Rand A low = 0
+        #expect(min.uuid.8 == 0b10000000) // Variant 10, Rand B high = 0
+        #expect(min.uuid.9 == 0x00)
+        #expect(min.uuid.15 == 0x00)
+
+        // Check Max
+        #expect(max.uuid.6 == 0x7F) // Version 7, Rand A high = 1
+        #expect(max.uuid.7 == 0xFF) // Rand A low = 1
+        #expect(max.uuid.8 == 0b10111111) // Variant 10, Rand B high = 1
+        #expect(max.uuid.9 == 0xFF)
+        #expect(max.uuid.15 == 0xFF)
+    }
+
+    @Test("Min and Max Ordering")
+    func minMaxOrdering() throws {
+        let date = Date()
+
+        let min = UUIDV7.min(timestamp: date)
+        let max = UUIDV7.max(timestamp: date)
+        try #require(min < max)
+        let range = min...max
+
+        for _ in 0..<100 {
+            let normal = UUIDV7(timestamp: date)
+            #expect(range.contains(normal))
+        }
+    }
 }
 
 extension UUIDV7 {

@@ -144,6 +144,28 @@ extension UUIDV7 {
     public init(timestamp: Date, bytes: uuid_t = UUID().uuid) {
         self.init(timeIntervalSince1970: timestamp.timeIntervalSince1970, bytes: bytes)
     }
+
+    /// Creates a UUIDv7 with the specified timestamp and the minimum possible random bits.
+    ///
+    /// The resulting UUID will have the specified timestamp, version 7, variant RFC 9562, and all
+    /// random bits set to 0.
+    ///
+    /// - Parameter timestamp: The `Date` to embed in this UUID.
+    /// - Returns: The minimum UUIDv7 for the given timestamp.
+    public static func min(timestamp: Date) -> UUIDV7 {
+        Self(timestamp: timestamp, bytes: (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0))
+    }
+
+    /// Creates a UUIDv7 with the specified timestamp and the maximum possible random bits.
+    ///
+    /// The resulting UUID will have the specified timestamp, version 7, variant RFC 9562, and all
+    /// random bits set to 1.
+    ///
+    /// - Parameter timestamp: The `Date` to embed in this UUID.
+    /// - Returns: The maximum UUIDv7 for the given timestamp.
+    public static func max(timestamp: Date) -> UUIDV7 {
+        Self(timestamp: timestamp, bytes: (0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF))
+    }
 }
 
 @usableFromInline
