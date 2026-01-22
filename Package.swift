@@ -21,7 +21,7 @@ let package = Package(
             swiftSettings: [
                 .define(
                     "SWIFT_UUIDV7_EXIT_TESTABLE_PLATFORM",
-                    .when(platforms: [.macOS, .linux, .windows])
+                    .when(platforms: [.macOS, .linux])
                 )
             ]
         )
