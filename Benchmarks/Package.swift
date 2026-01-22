@@ -5,7 +5,7 @@ import PackageDescription
 
 let package = Package(
   name: "Benchmarks",
-  platforms: [.macOS(.v13)],
+  platforms: [.macOS(.v15)],
   dependencies: [
     .package(path: ".."),
     .package(url: "https://github.com/ordo-one/package-benchmark", from: "1.4.0")
