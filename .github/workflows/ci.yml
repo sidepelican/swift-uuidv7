@@ -13,7 +13,7 @@ concurrency:
 jobs:
   benchmark:
     name: UUIDV7 vs Foundation UUID (Throughput)
-    runs-on: macos-26-arm64
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v6
       - run: sudo xcode-select -s /Applications/Xcode_26.2.app
