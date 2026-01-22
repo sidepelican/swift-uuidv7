@@ -1,3 +1,9 @@
+#if canImport(FoundationEssentials)
+import FoundationEssentials
+#else
+import Foundation
+#endif
+
 /// A variant of UUID as defined by RFC 9562.
 public enum UUIDVariant: Hashable, Sendable {
   /// Reserved by the NCS for backward compatibility.
@@ -12,8 +18,8 @@ public enum UUIDVariant: Hashable, Sendable {
   /// Reserved for future use.
   case future
 
-  /// The variant of the specified ``UUIDBytes`` as defined by RFC 9562.
-  public init(uuid: UUIDBytes) {
+  /// The variant of the specified bytes as defined by RFC 9562.
+  public init(uuid: uuid_t) {
     let x = uuid.8
     if x & 0x80 == 0x00 {
       self = .ncs

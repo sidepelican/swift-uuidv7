@@ -1,9 +1,5 @@
 # Swift UUIDV7
 
-[![CI](https://github.com/mhayes853/swift-uuidv7/actions/workflows/ci.yml/badge.svg)](https://github.com/mhayes853/swift-uuidv7/actions/workflows/ci.yml)
-[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fmhayes853%2Fswift-uuidv7%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/mhayes853/swift-uuidv7)
-[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fmhayes853%2Fswift-uuidv7%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/mhayes853/swift-uuidv7)
-
 An RFC 9562 compliant UUIDV7 data type with cross-platform support and support for popular libraries.
 
 ```swift
@@ -34,8 +30,6 @@ On the timestamp, one could easily make an extension property on a Foundation `U
 
 On ordinality, Foundation’s `UUID` conforms to Comparable, but such a conformance falls into the same pitfalls as the timestamp case due to the lack of ordinality in typical v4 UUIDs. Additionally, Foundation UUID’s Comparable conformance is limited to specific platform versions (iOS 17+, macOS 14+, watchOS 10+, tvOS 17+).
 
-`UUIDV7` conforms to RawRepresentable and uses a Foundation `UUID` as its raw value. Additionally, it also implements dynamic member lookup on Foundation UUID’s properties, so you can access all the typical properties (and any that are added in the future) just as you would on a typical `UUID`.
-
 ### Sub-millisecond Monotonicity
 RFC 9562 does not require subsequent `UUIDV7` generations to have a notion of being monotonically increasing. In other words, this property is not a strict requirement.
 ```swift
@@ -59,54 +53,9 @@ If you do not want to maintain the property of monotonically increasing generati
 ```swift
 import UUIDV7
 
-let id1 = UUIDV7(.now)
-let id2 = UUIDV7(.now)
+let id1 = UUIDV7(timestamp: .now)
+let id2 = UUIDV7(timestamp: .now)
 assert(id2 > id1) // No longer true 100% of the time.
-```
-
-## Library Integrations
-The library ships with UUID v7 support to popular libraries in the ecosystem, each behind a package trait. Package traits will only compile the dependency for their specific library when you enable them. You can learn more about package traits [here](https://github.com/swiftlang/swift-evolution/blob/main/proposals/0450-swiftpm-package-traits.md) or the philosohpy for how they were used in this library [here](https://whypeople.xyz/on-package-traits).
-
-- [Tagged](https://github.com/pointfreeco/swift-tagged)
-  - **Trait:** `SwiftUUIDV7Tagged`
-  - Adds convenience initializers to `Tagged` that support `UUIDV7` generations.
-- [GRDB](https://github.com/groue/GRDB.swift)
-  - **Trait:** `SwiftUUIDV7GRDB`
-  - Adds `DatabaseValueConvertible` and `StatementColumnConvertible` conformances to `UUIDV7`.
-  - Adds `DatabaseFunction` instances for generating, parsing, and extracting properties from `UUIDV7`.
-- [StructuredQueries](https://github.com/pointfreeco/swift-structured-queries)
-  - **Trait:** `SwiftUUIDV7StructuredQueries`
-  - Adds a `QueryBindable` conformance to `UUIDV7`.
-  - Adds `UUIDV7.BytesRepresentation` and `UUIDV7.UppercaseRepresentation` column representations of `UUIDV7`.
-- [Dependencies](https://github.com/pointfreeco/swift-dependencies)
-  - **Trait:** `SwiftUUIDV7Dependencies`
-  - Adds a `UUIDV7Generator` dependency.
-  - Adds an initializer to `UUIDGenerator` that generates `UUIDV7` instances under the hood.
-- [SQLiteData](https://github.com/pointfreeco/sqlite-data)
-  - **Trait:** `SwiftUUIDV7SQLiteData`
-  - Conforms UUIDV7 to `IdentifierStringConvertible` to make it compatible with CloudKit sync.
-  - This trait also enables `SwiftUUIDV7GRDB` and `SwiftUUIDV7StructuredQueries`.
-
-Additionally, `UUIDV7` conforms to `EntityIdentifierConvertible` from AppIntents, which is available without a need to specify a trait when building for Apple platforms.
-
-## Installation
-You can add Swift UUIDV7 to an Xcode project by adding it to your project as a package.
-
-> [https://github.com/mhayes853/swift-uuidv7](https://github.com/mhayes853/swift-uuidv7)
-
-> ⚠️ At of the time of writing this, Xcode 26.2 does not seem to include a UI for enabling traits on swift packages through the `Files > Add Package Dependencies` menu. If you want to enable traits, you will have to install the library inside a local swift package that lives outside your Xcode project.
-
-If you want to use Swift UUIDV7 in a [SwiftPM](https://swift.org/package-manager/) project, it’s as simple as adding it to your `Package.swift`:
-
-```swift
-dependencies: [
-  .package(
-    url: "https://github.com/mhayes853/swift-uuidv7",
-    from: "0.4.0",
-    // You can omit the traits if you don't need any of them.
-    traits: ["SwiftUUIDV7GRDB"]
-  ),
-]
 ```
 
 ## License
