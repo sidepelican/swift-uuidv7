@@ -20,7 +20,7 @@ struct UUIDV7Tests {
         ]
     )
     func fromUUIDInvalid(uuid: UUID) async throws {
-        #expect(UUIDV7(uuid) == nil)
+        #expect(UUIDV7(rawValue: uuid) == nil)
     }
 
     @Test(
@@ -34,7 +34,7 @@ struct UUIDV7Tests {
         ]
     )
     func fromUUIDValid(uuid: UUID) async throws {
-        #expect(UUIDV7(uuid)?.rawValue == uuid)
+        #expect(UUIDV7(rawValue: uuid)?.rawValue == uuid)
     }
 
     @Test(
@@ -96,7 +96,6 @@ struct UUIDV7Tests {
             (Date(staticISO8601: "1993-05-20T10:40:43+0000"), "00ABCDEF-A7F8")
         ]
     )
-    @available(iOS 16, macOS 13, tvOS 16, watchOS 9, *)
     func fromDate(date: Date, prefix: String) async throws {
         let uuid = UUIDV7(timestamp: date)
         #expect(uuid.uuidString.starts(with: prefix))

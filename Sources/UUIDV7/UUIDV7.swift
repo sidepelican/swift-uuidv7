@@ -181,19 +181,6 @@ extension UUIDV7 {
     public static var now: Self { Self() }
 }
 
-// MARK: - Basic Initializers
-
-extension UUIDV7 {
-    /// Attempts to create a ``UUIDV7`` from a Foundation UUID.
-    ///
-    /// The Foundation UUID must be compliant with RFC 9562 UUID Version 7.
-    ///
-    /// - Parameter uuid: A Foundation UUID.
-    public init?(_ uuid: UUID) {
-        self.init(rawValue: uuid)
-    }
-}
-
 // MARK: - UUID String
 
 extension UUIDV7 {
