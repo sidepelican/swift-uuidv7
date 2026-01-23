@@ -1,12 +1,13 @@
 {
     "version": 1,
-    "lineLength": 100,
+    "lineLength": 140,
     "indentation": {
-        "spaces": 2
+        "spaces": 4
     },
     "maximumBlankLines": 1,
     "respectsExistingLineBreaks": true,
     "lineBreakAroundMultilineExpressionChainComponents": true,
     "multiElementCollectionTrailingCommas": false,
-    "lineBreakBeforeEachArgument": true
+    "lineBreakBeforeEachArgument": true,
+    "indentConditionalCompilationBlocks": false
 }
