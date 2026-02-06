@@ -83,12 +83,9 @@ extension UUIDV7 {
             $0.nextMillisWithSequence(timeIntervalSince1970: systemNow)
         }
         var bytes = UUID().uuid
-        withUnsafePointer(to: sequence.bigEndian) { ptr in
-            ptr.withMemoryRebound(to: (UInt8, UInt8).self, capacity: 1) {
-                bytes.6 = $0.pointee.0
-                bytes.7 = $0.pointee.1
-            }
-        }
+        let sequenceBigEndian: UInt16 = sequence.bigEndian
+        bytes.6 = UInt8(sequenceBigEndian & 0xFF)
+        bytes.7 = UInt8((sequenceBigEndian >> 8) & 0xFF)
         self.init(millis, bytes)
     }
 }
@@ -113,15 +110,14 @@ extension UUIDV7 {
     @usableFromInline
     internal init(_ timeMillis: UInt64, _ bytes: uuid_t) {
         var bytes = bytes
-        withUnsafePointer(to: timeMillis.bigEndian) { ptr in
-            let ptr = UnsafeRawPointer(ptr).advanced(by: 2)
-                .assumingMemoryBound(to: (UInt8, UInt8, UInt8, UInt8, UInt8, UInt8).self)
-            bytes.0 = ptr.pointee.0
-            bytes.1 = ptr.pointee.1
-            bytes.2 = ptr.pointee.2
-            bytes.3 = ptr.pointee.3
-            bytes.4 = ptr.pointee.4
-            bytes.5 = ptr.pointee.5
+        withUnsafeBytes(of: timeMillis.bigEndian) { ptr in
+            let v = ptr.loadUnaligned(fromByteOffset: 2, as: (UInt8, UInt8, UInt8, UInt8, UInt8, UInt8).self)
+            bytes.0 = v.0
+            bytes.1 = v.1
+            bytes.2 = v.2
+            bytes.3 = v.3
+            bytes.4 = v.4
+            bytes.5 = v.5
         }
         bytes.6 = (bytes.6 & 0x0F) | 0x70
         bytes.8 = (bytes.8 & 0x3F) | 0x80
@@ -244,9 +240,9 @@ extension UUIDV7: CustomReflectable {
 
 extension UUIDV7: Comparable {
     public static func < (lhs: UUIDV7, rhs: UUIDV7) -> Bool {
-        withUnsafePointer(to: lhs) { lhs in
-            withUnsafePointer(to: rhs) { rhs in
-                memcmp(lhs, rhs, MemoryLayout<UUIDV7>.size) < 0
+        withUnsafePointer(to: lhs.uuid) { lhs in
+            withUnsafePointer(to: rhs.uuid) { rhs in
+                memcmp(lhs, rhs, MemoryLayout<uuid_t>.size) < 0
             }
         }
     }
