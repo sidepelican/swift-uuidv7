@@ -106,11 +106,21 @@ struct UUIDV7Tests {
 #if SWIFT_UUIDV7_EXIT_TESTABLE_PLATFORM && swift(>=6.2)
     @Test("Exits When Negative Timestamp Used")
     func exitNegativeTimestamp() async throws {
-        await #expect(processExitsWith: .failure, "\(_negativeTimeStampMessage(-1000))") {
+        await #expect(processExitsWith: .failure, "\(_invalidTimestampMessage(-1000))") {
             _ = UUIDV7(timeIntervalSince1970: -1000)
         }
     }
 #endif
+
+    @Test func clampingNegativeTimestamp() {
+        let uuid = UUIDV7(clampingTimeIntervalSince1970: -1000)
+        #expect(uuid.timestamp == Date(timeIntervalSince1970: 0))
+    }
+
+    @Test func clampingBigTimestamp() {
+        let uuid = UUIDV7(clampingTimeIntervalSince1970: 100_000_000_000_000)
+        #expect(uuid.timestamp == Date(timeIntervalSince1970: Double(UInt64(0xFFFFFFFFFFFF)) / 1000))
+    }
 
     @Test(
         "Stores Date",
@@ -253,8 +263,8 @@ struct UUIDV7Tests {
     @Test("Min and Max Bits")
     func minMaxBits() {
         let date = Date(timeIntervalSince1970: 1000)
-        let min = UUIDV7.min(timestamp: date)
-        let max = UUIDV7.max(timestamp: date)
+        let min = UUIDV7.min(clampingTimestamp: date)
+        let max = UUIDV7.max(clampingTimestamp: date)
 
         // Check Min
         #expect(min.uuid.6 == 0x70) // Version 7, Rand A high = 0
@@ -275,8 +285,8 @@ struct UUIDV7Tests {
     func minMaxOrdering() throws {
         let date = Date()
 
-        let min = UUIDV7.min(timestamp: date)
-        let max = UUIDV7.max(timestamp: date)
+        let min = UUIDV7.min(clampingTimestamp: date)
+        let max = UUIDV7.max(clampingTimestamp: date)
         try #require(min < max)
         let range = min...max
 

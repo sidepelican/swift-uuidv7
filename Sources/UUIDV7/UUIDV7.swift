@@ -83,17 +83,17 @@ extension UUIDV7 {
             $0.nextMillisWithSequence(timeIntervalSince1970: systemNow)
         }
         var bytes = UUID().uuid
-        withUnsafePointer(to: sequence.bigEndian) { ptr in
-            ptr.withMemoryRebound(to: (UInt8, UInt8).self, capacity: 1) {
-                bytes.6 = $0.pointee.0
-                bytes.7 = $0.pointee.1
-            }
-        }
+        let sequenceBigEndian: UInt16 = sequence.bigEndian
+        bytes.6 = UInt8(sequenceBigEndian & 0xFF)
+        bytes.7 = UInt8((sequenceBigEndian >> 8) & 0xFF)
         self.init(millis, bytes)
     }
 }
 
 // MARK: - Time Initializers
+
+@usableFromInline let minTimeMillis = UInt64(0)
+@usableFromInline let maxTimeMillis = UInt64(0xFFFFFFFFFFFF /* 48 bits */)
 
 extension UUIDV7 {
     /// Creates a UUID with the specified unix epoch.
@@ -106,22 +106,46 @@ extension UUIDV7 {
     ///   - bytes: The bytes to use for the UUID. The timestamp and version will be overwritten.
     @inlinable
     public init(timeIntervalSince1970 timeInterval: TimeInterval, bytes: uuid_t = UUID().uuid) {
-        precondition(timeInterval >= 0, _negativeTimeStampMessage(timeInterval))
-        self.init(UInt64(timeInterval * 1000), bytes)
+        let timeMillis = UInt64(timeInterval * 1000)
+        precondition((minTimeMillis...maxTimeMillis).contains(timeMillis), _invalidTimestampMessage(timeInterval))
+        self.init(timeMillis, bytes)
+    }
+
+    /// Creates a UUID with the specified unix epoch, clamping the timestamp to the supported range.
+    ///
+    /// This initializer does not implement sub-millisecond monotonicity, use ``init()`` instead if
+    /// sub-millisecond monotonicity is needed.
+    ///
+    /// If the specified time interval is outside the range of timestamps that can be represented
+    /// by a UUIDv7 (before 1970 or after the year 10889), it will be clamped to the nearest valid value.
+    ///
+    /// - Parameters:
+    ///   - timeInterval: The `TimeInterval` since 00:00:00 UTC on 1 January 1970.
+    ///   - bytes: The bytes to use for the UUID. The timestamp and version will be overwritten.
+    @inlinable
+    public init(clampingTimeIntervalSince1970 timeInterval: TimeInterval, bytes: uuid_t = UUID().uuid) {
+        let timeIntervalMillis = timeInterval * 1000
+        let timeMillis: UInt64 = if timeIntervalMillis <= Double(minTimeMillis) {
+            minTimeMillis
+        } else if timeIntervalMillis >= Double(maxTimeMillis) {
+            maxTimeMillis
+        } else {
+            UInt64(timeIntervalMillis)
+        }
+        self.init(timeMillis, bytes)
     }
 
     @usableFromInline
     internal init(_ timeMillis: UInt64, _ bytes: uuid_t) {
         var bytes = bytes
-        withUnsafePointer(to: timeMillis.bigEndian) { ptr in
-            let ptr = UnsafeRawPointer(ptr).advanced(by: 2)
-                .assumingMemoryBound(to: (UInt8, UInt8, UInt8, UInt8, UInt8, UInt8).self)
-            bytes.0 = ptr.pointee.0
-            bytes.1 = ptr.pointee.1
-            bytes.2 = ptr.pointee.2
-            bytes.3 = ptr.pointee.3
-            bytes.4 = ptr.pointee.4
-            bytes.5 = ptr.pointee.5
+        withUnsafeBytes(of: timeMillis.bigEndian) { ptr in
+            let v = ptr.loadUnaligned(fromByteOffset: 2, as: (UInt8, UInt8, UInt8, UInt8, UInt8, UInt8).self)
+            bytes.0 = v.0
+            bytes.1 = v.1
+            bytes.2 = v.2
+            bytes.3 = v.3
+            bytes.4 = v.4
+            bytes.5 = v.5
         }
         bytes.6 = (bytes.6 & 0x0F) | 0x70
         bytes.8 = (bytes.8 & 0x3F) | 0x80
@@ -145,33 +169,49 @@ extension UUIDV7 {
         self.init(timeIntervalSince1970: timestamp.timeIntervalSince1970, bytes: bytes)
     }
 
-    /// Creates a UUIDv7 with the specified timestamp and the minimum possible random bits.
+    /// Creates a UUID with the specified `Date`, clamping the timestamp to the supported range.
+    ///
+    /// This initializer does not implement sub-millisecond monotonicity, use ``init()`` instead if
+    /// sub-millisecond monotonicity is needed.
+    ///
+    /// If the specified date is outside the range of timestamps that can be represented
+    /// by a UUIDv7 (before 1970 or after the year 10889), it will be clamped to the nearest valid value.
+    ///
+    /// - Parameters:
+    ///   - timestamp: The `Date` to embed in this UUID.
+    ///   - bytes: The bytes to use for the UUID. The timestamp and version will be overwritten.
+    @inlinable
+    public init(clampingTimestamp timestamp: Date, bytes: uuid_t = UUID().uuid) {
+        self.init(clampingTimeIntervalSince1970: timestamp.timeIntervalSince1970, bytes: bytes)
+    }
+
+    /// Creates a UUIDv7 with the specified timestamp and the minimum possible random bits, clamping the timestamp to the supported range.
     ///
     /// The resulting UUID will have the specified timestamp, version 7, variant RFC 9562, and all
     /// random bits set to 0.
     ///
     /// - Parameter timestamp: The `Date` to embed in this UUID.
     /// - Returns: The minimum UUIDv7 for the given timestamp.
-    public static func min(timestamp: Date) -> UUIDV7 {
-        Self(timestamp: timestamp, bytes: (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0))
+    public static func min(clampingTimestamp timestamp: Date) -> UUIDV7 {
+        UUIDV7(clampingTimestamp: timestamp, bytes: (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0))
     }
 
-    /// Creates a UUIDv7 with the specified timestamp and the maximum possible random bits.
+    /// Creates a UUIDv7 with the specified timestamp and the maximum possible random bits, clamping the timestamp to the supported range.
     ///
     /// The resulting UUID will have the specified timestamp, version 7, variant RFC 9562, and all
     /// random bits set to 1.
     ///
     /// - Parameter timestamp: The `Date` to embed in this UUID.
     /// - Returns: The maximum UUIDv7 for the given timestamp.
-    public static func max(timestamp: Date) -> UUIDV7 {
-        Self(timestamp: timestamp, bytes: (0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF))
+    public static func max(clampingTimestamp timestamp: Date) -> UUIDV7 {
+        UUIDV7(clampingTimestamp: timestamp, bytes: (0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF))
     }
 }
 
 @usableFromInline
-package func _negativeTimeStampMessage(_ timeInterval: TimeInterval) -> String {
-    let timeInterval = Date(timeIntervalSince1970: timeInterval)
-    return "Cannot create a UUIDV7 with a timestamp before January 1, 1970. (Received: \(timeInterval))"
+package func _invalidTimestampMessage(_ timeInterval: TimeInterval) -> String {
+    let date = Date(timeIntervalSince1970: timeInterval)
+    return "Cannot create a UUIDV7 with the timestamp. (Received: \(date))"
 }
 
 // MARK: - Now
@@ -244,9 +284,9 @@ extension UUIDV7: CustomReflectable {
 
 extension UUIDV7: Comparable {
     public static func < (lhs: UUIDV7, rhs: UUIDV7) -> Bool {
-        withUnsafePointer(to: lhs) { lhs in
-            withUnsafePointer(to: rhs) { rhs in
-                memcmp(lhs, rhs, MemoryLayout<UUIDV7>.size) < 0
+        withUnsafePointer(to: lhs.uuid) { lhs in
+            withUnsafePointer(to: rhs.uuid) { rhs in
+                memcmp(lhs, rhs, MemoryLayout<uuid_t>.size) < 0
             }
         }
     }
