@@ -92,6 +92,9 @@ extension UUIDV7 {
 
 // MARK: - Time Initializers
 
+@usableFromInline let minTimeMillis = UInt64(0)
+@usableFromInline let maxTimeMillis = UInt64(0xFFFFFFFFFFFF /* 48 bits */)
+
 extension UUIDV7 {
     /// Creates a UUID with the specified unix epoch.
     ///
@@ -103,8 +106,22 @@ extension UUIDV7 {
     ///   - bytes: The bytes to use for the UUID. The timestamp and version will be overwritten.
     @inlinable
     public init(timeIntervalSince1970 timeInterval: TimeInterval, bytes: uuid_t = UUID().uuid) {
-        precondition(timeInterval >= 0, _negativeTimeStampMessage(timeInterval))
-        self.init(UInt64(timeInterval * 1000), bytes)
+        let timeMillis = UInt64(timeInterval * 1000)
+        precondition((minTimeMillis...maxTimeMillis).contains(timeMillis), _invalidTimestampMessage(timeInterval))
+        self.init(timeMillis, bytes)
+    }
+
+    @inlinable
+    public init(clampingTimeIntervalSince1970 timeInterval: TimeInterval, bytes: uuid_t = UUID().uuid) {
+        let timeIntervalMillis = timeInterval * 1000
+        let timeMillis: UInt64 = if timeIntervalMillis <= Double(minTimeMillis) {
+            minTimeMillis
+        } else if timeIntervalMillis >= Double(maxTimeMillis) {
+            maxTimeMillis
+        } else {
+            UInt64(timeIntervalMillis)
+        }
+        self.init(timeMillis, bytes)
     }
 
     @usableFromInline
@@ -141,6 +158,11 @@ extension UUIDV7 {
         self.init(timeIntervalSince1970: timestamp.timeIntervalSince1970, bytes: bytes)
     }
 
+    @inlinable
+    public init(clampingTimestamp timestamp: Date, bytes: uuid_t = UUID().uuid) {
+        self.init(clampingTimeIntervalSince1970: timestamp.timeIntervalSince1970, bytes: bytes)
+    }
+
     /// Creates a UUIDv7 with the specified timestamp and the minimum possible random bits.
     ///
     /// The resulting UUID will have the specified timestamp, version 7, variant RFC 9562, and all
@@ -148,8 +170,8 @@ extension UUIDV7 {
     ///
     /// - Parameter timestamp: The `Date` to embed in this UUID.
     /// - Returns: The minimum UUIDv7 for the given timestamp.
-    public static func min(timestamp: Date) -> UUIDV7 {
-        Self(timestamp: timestamp, bytes: (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0))
+    public static func min(clampingTimestamp timestamp: Date) -> UUIDV7 {
+        UUIDV7(clampingTimestamp: timestamp, bytes: (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0))
     }
 
     /// Creates a UUIDv7 with the specified timestamp and the maximum possible random bits.
@@ -159,15 +181,15 @@ extension UUIDV7 {
     ///
     /// - Parameter timestamp: The `Date` to embed in this UUID.
     /// - Returns: The maximum UUIDv7 for the given timestamp.
-    public static func max(timestamp: Date) -> UUIDV7 {
-        Self(timestamp: timestamp, bytes: (0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF))
+    public static func max(clampingTimestamp timestamp: Date) -> UUIDV7 {
+        UUIDV7(clampingTimestamp: timestamp, bytes: (0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF))
     }
 }
 
 @usableFromInline
-package func _negativeTimeStampMessage(_ timeInterval: TimeInterval) -> String {
-    let timeInterval = Date(timeIntervalSince1970: timeInterval)
-    return "Cannot create a UUIDV7 with a timestamp before January 1, 1970. (Received: \(timeInterval))"
+package func _invalidTimestampMessage(_ timeInterval: TimeInterval) -> String {
+    let date = Date(timeIntervalSince1970: timeInterval)
+    return "Cannot create a UUIDV7 with the timestamp. (Received: \(date))"
 }
 
 // MARK: - Now
