@@ -111,6 +111,17 @@ extension UUIDV7 {
         self.init(timeMillis, bytes)
     }
 
+    /// Creates a UUID with the specified unix epoch, clamping the timestamp to the supported range.
+    ///
+    /// This initializer does not implement sub-millisecond monotonicity, use ``init()`` instead if
+    /// sub-millisecond monotonicity is needed.
+    ///
+    /// If the specified time interval is outside the range of timestamps that can be represented
+    /// by a UUIDv7 (before 1970 or after the year 10889), it will be clamped to the nearest valid value.
+    ///
+    /// - Parameters:
+    ///   - timeInterval: The `TimeInterval` since 00:00:00 UTC on 1 January 1970.
+    ///   - bytes: The bytes to use for the UUID. The timestamp and version will be overwritten.
     @inlinable
     public init(clampingTimeIntervalSince1970 timeInterval: TimeInterval, bytes: uuid_t = UUID().uuid) {
         let timeIntervalMillis = timeInterval * 1000
@@ -158,12 +169,23 @@ extension UUIDV7 {
         self.init(timeIntervalSince1970: timestamp.timeIntervalSince1970, bytes: bytes)
     }
 
+    /// Creates a UUID with the specified `Date`, clamping the timestamp to the supported range.
+    ///
+    /// This initializer does not implement sub-millisecond monotonicity, use ``init()`` instead if
+    /// sub-millisecond monotonicity is needed.
+    ///
+    /// If the specified date is outside the range of timestamps that can be represented
+    /// by a UUIDv7 (before 1970 or after the year 10889), it will be clamped to the nearest valid value.
+    ///
+    /// - Parameters:
+    ///   - timestamp: The `Date` to embed in this UUID.
+    ///   - bytes: The bytes to use for the UUID. The timestamp and version will be overwritten.
     @inlinable
     public init(clampingTimestamp timestamp: Date, bytes: uuid_t = UUID().uuid) {
         self.init(clampingTimeIntervalSince1970: timestamp.timeIntervalSince1970, bytes: bytes)
     }
 
-    /// Creates a UUIDv7 with the specified timestamp and the minimum possible random bits.
+    /// Creates a UUIDv7 with the specified timestamp and the minimum possible random bits, clamping the timestamp to the supported range.
     ///
     /// The resulting UUID will have the specified timestamp, version 7, variant RFC 9562, and all
     /// random bits set to 0.
@@ -174,7 +196,7 @@ extension UUIDV7 {
         UUIDV7(clampingTimestamp: timestamp, bytes: (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0))
     }
 
-    /// Creates a UUIDv7 with the specified timestamp and the maximum possible random bits.
+    /// Creates a UUIDv7 with the specified timestamp and the maximum possible random bits, clamping the timestamp to the supported range.
     ///
     /// The resulting UUID will have the specified timestamp, version 7, variant RFC 9562, and all
     /// random bits set to 1.
